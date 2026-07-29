@@ -37,8 +37,8 @@ DB 비밀번호와 `.env`는 Git에 올리지 않습니다.
 ## 배포
 
 - feature 브랜치: 자동 배포하지 않음
-- `dev` 브랜치: Coolify 자동 배포
-- `main` 브랜치: 담당자 승인 후 운영 배포
+- 기본 `main` 브랜치: Coolify 개발 환경 자동 배포
+- 운영 배포: 별도 운영 환경에서 담당자 승인 후 진행
 
 Coolify 배포용 `compose.yaml`에는 PostgreSQL 컨테이너가 없습니다. 중앙
 PostgreSQL의 앱 전용 database·role과 `DATABASE_URL`을 프로비저너가

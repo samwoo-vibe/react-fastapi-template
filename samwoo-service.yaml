@@ -1,5 +1,5 @@
 version: 1
-deploy_branch: dev
+deploy_branch: main
 compose_file: compose.yaml
 public_service: frontend
 public_port: 80

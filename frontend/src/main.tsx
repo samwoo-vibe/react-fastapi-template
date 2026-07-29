@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
@@ -18,9 +19,10 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import "./styles.css";
 
-const navItems = [
+const navItems: Array<[LucideIcon, string]> = [
   [LayoutDashboard, "개요"],
   [Boxes, "서비스"],
   [Rocket, "배포"],
@@ -51,14 +53,27 @@ const services = [
   },
 ];
 
+type Health = {
+  status: string;
+  database: string;
+};
+
+type OverviewResponse = {
+  database: string;
+  visits: number;
+};
+
 function App() {
-  const [health, setHealth] = useState({ status: "확인 중", database: "확인 중" });
+  const [health, setHealth] = useState<Health>({
+    status: "확인 중",
+    database: "확인 중",
+  });
   const [visits, setVisits] = useState(0);
 
   useEffect(() => {
     fetch("/api/overview")
       .then((response) => response.json())
-      .then((data) => {
+      .then((data: OverviewResponse) => {
         setHealth({ status: "정상", database: data.database });
         setVisits(data.visits);
       })
@@ -205,7 +220,14 @@ function App() {
   );
 }
 
-function Metric({ icon: Icon, label, value, meta }) {
+type MetricProps = {
+  icon: LucideIcon;
+  label: string;
+  value: ReactNode;
+  meta: string;
+};
+
+function Metric({ icon: Icon, label, value, meta }: MetricProps) {
   return (
     <article className="metric">
       <div className="metric-icon"><Icon size={19} /></div>
@@ -216,7 +238,13 @@ function Metric({ icon: Icon, label, value, meta }) {
   );
 }
 
-createRoot(document.getElementById("root")).render(
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Root element was not found");
+}
+
+createRoot(rootElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,

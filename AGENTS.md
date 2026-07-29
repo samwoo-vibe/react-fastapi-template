@@ -14,10 +14,12 @@
   접속하며 접속정보는 `DATABASE_URL`로만 받는다.
 - Windows 개발 PC에는 Docker·WSL을 요구하지 않는다. 로컬 개발 DB는 Windows에
   설치한 PostgreSQL을 사용한다.
+- 로컬 React는 Vite 개발 서버와 내장 `/api` proxy를 사용한다. Windows에 Nginx나
+  Traefik을 설치하도록 안내하지 않는다.
 
 ## 기술 기준
 
-- Frontend: React 19, Vite, JavaScript/JSX, npm
+- Frontend: React 19, Vite, TypeScript/TSX(strict), npm
 - Backend: Python 3.13, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, uv
 - Database: PostgreSQL 17
 - Deployment: Docker Compose, Coolify, Traefik
@@ -45,6 +47,7 @@
 - 로컬 Python 준비: `Push-Location backend; uv sync; Pop-Location`
 - backend 실행·migration은 `uv run`으로 수행한다.
 - frontend 의존성은 `npm ci`, 개발 실행은 `npm run dev`를 사용한다.
+- frontend 변경은 `npm run typecheck`와 `npm run build`를 통과해야 한다.
 - 변경 범위에 맞게 최소한 backend health, frontend build, migration을 검증한다.
 - 실패한 검증을 숨기지 말고 원인과 미검증 항목을 보고한다.
 - 관련 없는 파일을 정리하거나 사용자의 변경을 덮어쓰지 않는다.

@@ -7,7 +7,7 @@
 
 ## 기술스택
 
-- Frontend: React 19 + Vite + JavaScript/JSX, npm
+- Frontend: React 19 + Vite + TypeScript/TSX, npm
 - Backend: Python 3.13 + FastAPI + SQLAlchemy 2 + Alembic + psycopg 3
 - Python 패키지·가상환경: uv (`pyproject.toml` + `uv.lock`)
 - Database: 로컬/중앙 PostgreSQL 17
@@ -37,6 +37,8 @@ winget install --id=astral-sh.uv -e
 
 프런트엔드는 `http://127.0.0.1:5173`, API는
 `http://127.0.0.1:8000`에서 실행됩니다.
+로컬에서는 Vite가 React를 제공하고 `/api` 요청을 FastAPI로 전달하므로 Nginx를
+설치할 필요가 없습니다. Nginx는 서버 배포용 frontend 이미지 안에서만 실행됩니다.
 
 ## 데이터베이스 변경
 

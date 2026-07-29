@@ -1,0 +1,13 @@
+version: 1
+name: change-me
+owner: change-me@samwoo.co.kr
+deploy_branch: dev
+compose_file: compose.yaml
+public_service: frontend
+public_port: 80
+healthcheck: /healthz
+database:
+  engine: postgresql
+  required: true
+  migrations: alembic
+

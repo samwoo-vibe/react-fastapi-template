@@ -5,7 +5,7 @@
 ## 새 서비스 만들기
 
 1. GitHub의 `Use this template`으로 `samwoo-vibe` 조직에 private 저장소를 만듭니다.
-2. `samwoo-service.yaml`의 `name`과 `owner`를 수정합니다.
+2. 기능을 개발하고 로컬 PostgreSQL로 테스트합니다.
 3. 저장소를 Windows PC에 clone합니다.
 4. PostgreSQL 17에 프로젝트 전용 로컬 DB와 role을 만듭니다.
 5. PowerShell에서 `.\scripts\setup.ps1`을 실행합니다.
@@ -46,4 +46,3 @@ PostgreSQL의 앱 전용 database·role과 `DATABASE_URL`을 프로비저너가
 
 배포 시 backend가 `alembic upgrade head`를 실행한 뒤 FastAPI를 시작합니다.
 frontend와 backend는 각각 512MB 메모리 제한과 health check를 사용합니다.
-

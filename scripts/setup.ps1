@@ -5,16 +5,17 @@ if (-not (Test-Path ".env")) {
     Write-Host ".env를 만들었습니다. 로컬 PostgreSQL 접속정보를 수정하세요."
 }
 
-if (-not (Test-Path ".venv")) {
-    python -m venv .venv
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    throw "uv가 없습니다. 먼저 'winget install --id=astral-sh.uv -e'를 실행하세요."
 }
 
-& .\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+Push-Location backend
+uv sync
+Pop-Location
 Push-Location frontend
-npm install
+npm ci
 Pop-Location
 
 Write-Host "설치 완료"
 Write-Host "Backend: .\\scripts\\start-backend.ps1"
 Write-Host "Frontend: .\\scripts\\start-frontend.ps1"
-

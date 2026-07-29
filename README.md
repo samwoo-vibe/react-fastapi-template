@@ -2,15 +2,33 @@
 
 삼우에레코 시민 개발자를 위한 React + FastAPI + PostgreSQL 표준 템플릿입니다.
 
+> AI 코딩 도구를 사용하기 전에 반드시 루트의 `AGENTS.md`를 먼저 읽게 하세요.
+> 아키텍처, 보안, DB migration, 검증 및 배포 규칙이 들어 있습니다.
+
+## 기술스택
+
+- Frontend: React 19 + Vite + JavaScript/JSX, npm
+- Backend: Python 3.13 + FastAPI + SQLAlchemy 2 + Alembic + psycopg 3
+- Python 패키지·가상환경: uv (`pyproject.toml` + `uv.lock`)
+- Database: 로컬/중앙 PostgreSQL 17
+- 배포: Docker Compose + Coolify Traefik
+- React 파일·API 연결: frontend Nginx
+
 ## 새 서비스 만들기
 
 1. GitHub의 `Use this template`으로 `samwoo-vibe` 조직에 private 저장소를 만듭니다.
-2. 기능을 개발하고 로컬 PostgreSQL로 테스트합니다.
-3. 저장소를 Windows PC에 clone합니다.
-4. PostgreSQL 17에 프로젝트 전용 로컬 DB와 role을 만듭니다.
+2. 저장소를 Windows PC에 clone하고 AI 코딩 도구에 `AGENTS.md`를 읽으라고 합니다.
+3. Node.js 22, PostgreSQL 17, uv를 준비합니다.
+4. PostgreSQL에 프로젝트 전용 로컬 DB와 role을 만듭니다.
 5. PowerShell에서 `.\scripts\setup.ps1`을 실행합니다.
 6. 생성된 `.env`의 `DATABASE_URL`을 로컬 DB 정보로 수정합니다.
-7. 백엔드와 프런트엔드를 각각 실행합니다.
+7. 백엔드와 프런트엔드를 실행하고 기능을 개발합니다.
+
+uv가 없다면 PowerShell에서 다음 명령으로 설치합니다.
+
+```powershell
+winget install --id=astral-sh.uv -e
+```
 
 ```powershell
 .\scripts\start-backend.ps1
@@ -27,8 +45,8 @@
 
 ```powershell
 Push-Location backend
-..\.venv\Scripts\alembic.exe revision --autogenerate -m "변경 설명"
-..\.venv\Scripts\alembic.exe upgrade head
+uv run alembic revision --autogenerate -m "변경 설명"
+uv run alembic upgrade head
 Pop-Location
 ```
 

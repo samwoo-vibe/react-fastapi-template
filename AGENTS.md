@@ -3,6 +3,8 @@
 이 저장소에서 작업하는 AI 코딩 도구와 사람은 아래 규칙을 따른다.
 요청이 불명확하거나 운영 데이터·보안·아키텍처에 영향을 주면 추측하지 말고 먼저
 사용자에게 확인한다.
+README는 사람을 위한 프로젝트 소개와 실행 안내다. 작업 규칙은 이 문서를 단일
+기준으로 삼으며, 작업을 시작할 때 이 문서를 끝까지 먼저 읽는다.
 
 ## 고정 아키텍처
 
@@ -43,7 +45,16 @@
 
 ## 작업 및 검증
 
-- 시작 전 `README.md`, `compose.yaml`, 관련 코드를 읽고 기존 구조를 우선한다.
+- 시작 전 이 문서와 `compose.yaml`, 관련 코드를 읽고 기존 구조를 우선한다.
+- DB 스키마를 변경할 때는 다음과 같이 migration을 생성하고 적용한다.
+
+```powershell
+Push-Location backend
+uv run alembic revision --autogenerate -m "변경 설명"
+uv run alembic upgrade head
+Pop-Location
+```
+
 - 로컬 Python 준비: `Push-Location backend; uv sync; Pop-Location`
 - backend 실행·migration은 `uv run`으로 수행한다.
 - frontend 의존성은 `npm ci`, 개발 실행은 `npm run dev`를 사용한다.

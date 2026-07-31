@@ -2,8 +2,9 @@
 
 삼우에레코 시민 개발자를 위한 React + FastAPI + PostgreSQL 표준 템플릿입니다.
 
-> AI 코딩 도구를 사용하기 전에 반드시 루트의 `AGENTS.md`를 먼저 읽게 하세요.
-> 아키텍처, 보안, DB migration, 검증 및 배포 규칙이 들어 있습니다.
+> AI 코딩 도구는 작업을 시작하기 전에 반드시 루트의 [`AGENTS.md`](AGENTS.md)를
+> 먼저 읽고 따라야 합니다. 에이전트용 아키텍처·보안·DB migration·검증·배포
+> 규칙은 README가 아니라 `AGENTS.md`를 기준으로 합니다.
 
 ## 기술스택
 
@@ -17,7 +18,7 @@
 ## 새 서비스 만들기
 
 1. GitHub의 `Use this template`으로 `samwoo-vibe` 조직에 private 저장소를 만듭니다.
-2. 저장소를 Windows PC에 clone하고 AI 코딩 도구에 `AGENTS.md`를 읽으라고 합니다.
+2. 저장소를 Windows PC에 clone합니다.
 3. Node.js 22, PostgreSQL 17, uv를 준비합니다.
 4. PostgreSQL에 프로젝트 전용 로컬 DB와 role을 만듭니다.
 5. PowerShell에서 `.\scripts\setup.ps1`을 실행합니다.
@@ -39,20 +40,6 @@ winget install --id=astral-sh.uv -e
 `http://127.0.0.1:8000`에서 실행됩니다.
 로컬에서는 Vite가 React를 제공하고 `/api` 요청을 FastAPI로 전달하므로 Nginx를
 설치할 필요가 없습니다. Nginx는 서버 배포용 frontend 이미지 안에서만 실행됩니다.
-
-## 데이터베이스 변경
-
-테이블을 직접 수동 변경하지 않고 SQLAlchemy 모델과 Alembic migration으로
-관리합니다.
-
-```powershell
-Push-Location backend
-uv run alembic revision --autogenerate -m "변경 설명"
-uv run alembic upgrade head
-Pop-Location
-```
-
-DB 비밀번호와 `.env`는 Git에 올리지 않습니다.
 
 ## 배포
 

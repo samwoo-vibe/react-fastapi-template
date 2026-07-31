@@ -5,6 +5,9 @@ services:
       args:
         NODE_OPTIONS: --max-old-space-size=1536
     restart: unless-stopped
+    labels:
+      traefik.docker.network: ${COOLIFY_RESOURCE_UUID}
+      coolify.traefik.middlewares: ax-planning-auth@file
     depends_on:
       backend:
         condition: service_healthy

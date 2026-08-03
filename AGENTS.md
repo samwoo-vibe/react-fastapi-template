@@ -71,14 +71,14 @@ Pop-Location
   교체한다.
 - 최종 README는 현재 프로젝트의 이름, 목적, 주요 기능, 로컬 준비 사항과 사용자
   실행 방법을 설명해야 한다.
-- Golden Template 자체를 소개하는 문구와 현재 프로젝트에 불필요한 범용 설명을
+- React/FastAPI Template 자체를 소개하는 문구와 현재 프로젝트에 불필요한 범용 설명을
   그대로 남기지 않는다.
 - AI 코딩 에이전트가 작업 전에 `AGENTS.md`를 반드시 읽어야 한다는 안내는 유지한다.
 - 실제 프로젝트에 적용되는 보안·데이터 주의사항은 유지한다.
 
 ## Git 및 배포
 
-- 원본 템플릿 저장소 `samwoo-vibe/golden-template`에는 commit하거나 push하지 않는다.
+- 원본 템플릿 저장소 `samwoo-vibe/react-fastapi-template`에는 commit하거나 push하지 않는다.
 - 신규 작업은 공개 템플릿을 내려받은 로컬 작업 폴더에서 수행한다. 신규 앱 GitHub
   저장소 URL을 작업자에게 요구하지 않는다.
 - 검증 결과와 변경사항을 사용자에게 보여준 뒤, 사용자가 결과물을 Nextcloud의
@@ -119,7 +119,7 @@ python scripts/export_handoff.py --project-name 프로젝트명
 - migration 적용 성공
 - gitleaks 검사 성공
 - `.env`, 실제 자격증명과 `DATABASE_URL`이 Git 추적 대상이 아님
-- `README.md`가 Golden Template 설명이 아니라 현재 프로젝트를 설명함
+- `README.md`가 React/FastAPI Template 설명이 아니라 현재 프로젝트를 설명함
 - 원본 템플릿의 공개 remote에 push하지 않음
 - Nextcloud 수동 인계를 위한 소스·테스트 보고서·변경 요약을 준비함
 - `python scripts/export_handoff.py --project-name 프로젝트명` 성공

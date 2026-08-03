@@ -1,4 +1,4 @@
-"""Create a source-only Golden Template handoff package."""
+"""Create a source-only React/FastAPI Template handoff package."""
 
 from __future__ import annotations
 
@@ -104,7 +104,7 @@ def write_handoff(root: Path, output: Path, name: str) -> None:
     (output / "SOURCE-HANDOFF.md").write_text(
         f"""# {name} 소스코드 인수인계
 
-이 묶음은 Golden Template 기반 앱을 관리자에게 검토받기 위한 소스 전달본이다.
+이 묶음은 React/FastAPI Template 기반 앱을 관리자에게 검토받기 위한 소스 전달본이다.
 운영 데이터나 비밀값을 포함하지 않는다.
 
 ## 포함

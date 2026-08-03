@@ -1,4 +1,4 @@
-# Samwoo Vibe Golden Template
+# Samwoo Vibe React/FastAPI Template
 
 삼우에레코 시민 개발자를 위한 React + FastAPI + PostgreSQL 표준 템플릿입니다.
 

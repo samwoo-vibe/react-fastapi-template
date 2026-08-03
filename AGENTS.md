@@ -79,9 +79,12 @@ Pop-Location
 ## Git 및 배포
 
 - 원본 템플릿 저장소 `samwoo-vibe/golden-template`에는 commit하거나 push하지 않는다.
-- 배포 대상 remote는 `samwoo-vibe` 조직에 만든 별도 앱 저장소여야 한다.
-- 검증 결과와 변경사항을 사용자에게 보여주고 명시적 승인을 받은 뒤에만 앱 저장소의
-  `main` 브랜치에 commit·push한다.
+- 신규 작업은 공개 템플릿을 내려받은 로컬 작업 폴더에서 수행한다. 신규 앱 GitHub
+  저장소 URL을 작업자에게 요구하지 않는다.
+- 검증 결과와 변경사항을 사용자에게 보여준 뒤, 사용자가 결과물을 Nextcloud의
+  `공유 자료/VibeCoding/<프로젝트명>/` 폴더에 직접 올려 관리자 검토를 받는다.
+- 바이브코딩 작업 중에는 원본 템플릿이나 어떤 GitHub 저장소에도 commit·push하지
+  않는다. 관리자가 검토 후 별도 private 앱 저장소를 만들고 승인본을 push한다.
 - push 전에 `compose.yaml`, `samwoo-service.yaml`, frontend/backend `Dockerfile`,
   `frontend/package-lock.json`, `backend/uv.lock`, `backend/migrations/`가 유지되는지
   확인한다.
@@ -98,5 +101,6 @@ Pop-Location
 - gitleaks 검사 성공
 - `.env`, 실제 자격증명과 `DATABASE_URL`이 Git 추적 대상이 아님
 - `README.md`가 Golden Template 설명이 아니라 현재 프로젝트를 설명함
-- Git remote가 원본 템플릿이 아닌 별도 앱 저장소를 가리킴
-- 배포 작업이면 사용자 승인 후 `main` push 성공을 확인함
+- 원본 템플릿의 공개 remote에 push하지 않음
+- Nextcloud 수동 인계를 위한 소스·테스트 보고서·변경 요약을 준비함
+- 관리자가 별도 앱 저장소에 승인본을 push한 경우에만 Coolify 자동 배포를 확인함

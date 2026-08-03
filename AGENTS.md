@@ -93,6 +93,25 @@ Pop-Location
 - 배포 시 backend가 `alembic upgrade head`에 성공한 뒤 시작되어야 한다.
 - 자동 배포 설정, 중앙 DB network, 도메인 규칙을 임의로 우회하지 않는다.
 
+## Nextcloud 인계 ZIP
+
+개발과 검증이 끝나면 관리자가 압축을 풀고 파일을 보충하지 않아도 새 저장소에
+바로 Push할 수 있는 배포용 인계 ZIP을 만든다.
+
+```bash
+python scripts/export_handoff.py --project-name 프로젝트명
+```
+
+스크립트는 `_handoff/<프로젝트명>-source.zip`을 만든다. ZIP 내부에는
+`frontend/`, `backend/`, `compose.yaml`, `samwoo-service.yaml` 등 저장소에 필요한
+파일이 최상위에 바로 들어가며, `<프로젝트명>-source/` 같은 래퍼 폴더를 만들지
+않는다. 관리자는 이 ZIP을 새 private GitHub 저장소의 루트에 압축 해제한 뒤 파일을
+이동하거나 추가하지 않고 `main`에 최초 Push한다.
+
+`.git`, `.env`, 토큰·비밀번호·키, `node_modules`, `.venv`, 빌드 결과, 캐시, 로그,
+로컬 DB와 실제 데이터는 ZIP에 포함하지 않는다. 스크립트가 실패하거나 필수 파일이
+누락되면 인계 완료로 보고하지 않는다.
+
 ## 완료 조건
 
 - backend 의존성 동기화와 관련 테스트·health 검증 성공
@@ -103,4 +122,7 @@ Pop-Location
 - `README.md`가 Golden Template 설명이 아니라 현재 프로젝트를 설명함
 - 원본 템플릿의 공개 remote에 push하지 않음
 - Nextcloud 수동 인계를 위한 소스·테스트 보고서·변경 요약을 준비함
+- `python scripts/export_handoff.py --project-name 프로젝트명` 성공
+- 인계 ZIP을 새 저장소 루트에 풀었을 때 `compose.yaml`과
+  `samwoo-service.yaml`이 최상위에 존재함
 - 관리자가 별도 앱 저장소에 승인본을 push한 경우에만 Coolify 자동 배포를 확인함

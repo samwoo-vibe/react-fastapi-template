@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT_FILES = (
     "README.md",
     "AGENTS.md",
+    ".gitignore",
     "compose.yaml",
     "samwoo-service.yaml",
     ".env.example",
@@ -33,7 +34,15 @@ SOURCE_FILES = (
     "frontend/nginx.conf",
     "backend/pyproject.toml",
     "backend/uv.lock",
+    "backend/alembic.ini",
     "backend/Dockerfile",
+)
+REQUIRED_FILES = (
+    "compose.yaml",
+    "samwoo-service.yaml",
+    "frontend/Dockerfile",
+    "backend/Dockerfile",
+    "backend/alembic.ini",
 )
 EXCLUDED_PARTS = {
     ".git",
@@ -121,6 +130,9 @@ private GitHub 저장소를 만든다.
 
 
 def validate(output: Path) -> list[Path]:
+    for relative_name in REQUIRED_FILES:
+        if not (output / relative_name).is_file():
+            raise ValueError(f"배포 필수 파일이 없습니다: {relative_name}")
     files = sorted(path for path in output.rglob("*") if path.is_file())
     if not (output / "SOURCE-HANDOFF.md").is_file():
         raise ValueError("SOURCE-HANDOFF.md가 없습니다.")
@@ -136,10 +148,12 @@ def validate(output: Path) -> list[Path]:
 
 
 def make_zip(output: Path, archive: Path) -> None:
+    # The archive is extracted directly into the new repository root. Do not
+    # add the local ``<project>-source`` directory as a wrapper folder.
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
         for path in sorted(output.rglob("*")):
             if path.is_file():
-                bundle.write(path, Path(output.name) / path.relative_to(output))
+                bundle.write(path, path.relative_to(output))
 
 
 def main() -> int:
@@ -167,7 +181,7 @@ def main() -> int:
             archive.unlink()
         raise
     print(f"폴더: {output}")
-    print(f"Nextcloud ZIP: {archive}")
+    print(f"Nextcloud ZIP (저장소 루트 직결): {archive}")
     print(f"포함 파일: {len(files)}개")
     return 0
 

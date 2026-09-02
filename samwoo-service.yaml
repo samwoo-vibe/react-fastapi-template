@@ -2,7 +2,7 @@ version: 1
 deploy_branch: main
 compose_file: compose.yaml
 public_service: frontend
-public_port: 80
+public_port: 8080
 healthcheck: /healthz
 database:
   engine: postgresql

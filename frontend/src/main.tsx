@@ -121,10 +121,10 @@ function App() {
             <kbd>⌘ K</kbd>
           </div>
           <div className="profile">
-            <div className="avatar">AX</div>
+            <div className="avatar">공개</div>
             <div>
-              <strong>시민 개발자</strong>
-              <span>samwooax</span>
+              <strong>공개 방문자</strong>
+              <span>인증 미구현</span>
             </div>
           </div>
         </header>
@@ -146,7 +146,12 @@ function App() {
             <Metric icon={Boxes} label="전체 서비스" value="12" meta="+3 이번 달" />
             <Metric icon={Rocket} label="이번 주 배포" value="28" meta="성공률 96.4%" />
             <Metric icon={Activity} label="플랫폼 상태" value={health.status} meta={`DB ${health.database}`} />
-            <Metric icon={Clock3} label="포털 방문" value={visits || "—"} meta="실시간 누적" />
+            <Metric
+              icon={Clock3}
+              label="DB 샘플 레코드"
+              value={visits}
+              meta="공개 화면은 읽기 전용"
+            />
           </section>
 
           <section className="workspace-grid">

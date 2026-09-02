@@ -14,4 +14,3 @@ class Visit(Base):
         DateTime(timezone=True),
         server_default=func.now(),
     )
-

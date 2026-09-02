@@ -34,11 +34,14 @@ README는 사람을 위한 프로젝트 소개와 실행 안내다. 작업 규�
 그 규약을 이미 만족한 상태로 배포된다. 아래는 **깨뜨리면 배포가 실패하거나 조용히
 잘못 동작하는 항목**이므로 임의로 바꾸지 않는다.
 
-- `samwoo-service.yaml`의 `public_service: frontend` / `public_port: 80` 조합은
+- `samwoo-service.yaml`의 `public_service: frontend` / `public_port: 8080` 조합은
   프로비저너 허용 목록에 등록된 값이다. 바꾸면 배포가 거부된다. 매니페스트가 잘못되면
   GitHub에는 성공으로 보이고 배포만 조용히 안 되므로, push 후 도메인을 눈으로 확인한다.
-- 각 컨테이너가 노출하는 포트는 정확히 하나여야 한다(`EXPOSE 80`, `EXPOSE 8000`).
+- 각 컨테이너가 노출하는 포트는 정확히 하나여야 한다(`EXPOSE 8080`, `EXPOSE 8000`).
   관리·메트릭 포트를 추가로 열면 Traefik이 대상 포트를 정하지 못해 라우팅이 실패한다.
+- Dockerfile의 공식 base image와 외부 `COPY --from` 이미지는 태그와 OCI digest를 함께
+  고정한다. digest를 지우거나 임의 이미지로 바꾸면 동일 커밋 재빌드가 달라질 수 있고
+  자동 배포 gate에서 거부된다.
 - `compose.yaml`에 `ports:`를 쓰지 않는다(`expose:`만). 자체 `db:` 서비스를 추가하지
   않는다 - DB는 프로비저너가 중앙 PostgreSQL에 만들어 주고 `DATABASE_URL`로 주입한다.
 - `container_name`을 지정하지 않는다. 무중단 교체 배포가 깨진다.
@@ -48,11 +51,15 @@ README는 사람을 위한 프로젝트 소개와 실행 안내다. 작업 규�
   `DATABASE_URL`은 값이 없으면 즉시 실패해야 한다(`os.environ[...]`).
 - 브라우저에 노출되는 값(`VITE_*`)은 **빌드 시점**에 주입해야 한다. 런타임에만 넣으면
   브라우저에서 `undefined`가 된다(R5-2). 비밀에는 공개 접두어를 붙이지 않는다(R5-3).
-- 앱의 기준 URL은 `COOLIFY_URL`을 읽는다. 도메인을 하드코딩하지 않는다(R5-1).
+- 앱의 기준 URL은 프로비저너가 모든 서비스에 주입하는 `APP_BASE_URL`을 읽는다.
+  공개 서비스에만 채워질 수 있는 `COOLIFY_URL`이나 도메인 하드코딩에 의존하지 않는다(R5-1).
 - `APP_ENV`는 운영에서도 항상 `dev`다. 이 값으로 환경을 분기하지 않는다(R5-1).
 - 시간은 시간대 인식 타입으로 저장하고 표시할 때만 변환한다(R9-1).
 - 앱 볼륨은 자동 백업 대상이 아니다. 소실되면 안 되는 파일은 관리자에게 백업 등록을
   신청한다(R4-5).
+- PostgreSQL role의 20 connection 제한과 rolling 배포 여유를 위해 backend pool의
+  `pool_size=5`, `max_overflow=3`, `pool_timeout=5`를 유지한다. replica나 worker 수를
+  늘릴 때는 전체 동시 연결 수를 먼저 계산한다.
 
 ## 변경 규칙
 
@@ -66,8 +73,17 @@ README는 사람을 위한 프로젝트 소개와 실행 안내다. 작업 규�
 - 커밋 전에 gitleaks 검사를 통과시킨다. 탐지 결과를 무시하거나 allowlist에 추가하려면
   담당자 승인을 받는다.
 - frontend에 DB 접속정보를 넣거나 브라우저에서 PostgreSQL에 직접 접속하지 않는다.
+- Coolify는 앱 환경 파일을 모든 Compose 서비스에 붙인다. backend 전용 비밀 키마다
+  frontend `environment`에 비어 있지 않은 invalid sentinel을 둔다. `null`은 실제 값을
+  상속하고 빈 문자열은 Coolify가 저장값으로 치환하므로 비밀 차단에 사용하지 않는다.
+- 신규 자동 배포 앱은 기본 공개이며 회사 공용 HTTP Basic Auth가 없다. 개인정보나
+  업무상 민감정보를 다루기 전에 앱 자체 인증·인가를 구현하고 API에서 권한을 검사한다.
+- 프록시 뒤의 `request.client`나 `X-Forwarded-For`를 사용자 신원·권한의 근거로 쓰지
+  않는다. 현재 Nginx는 외부에서 들어온 전달 체인을 덮어써 위조를 막기 때문에 실제 사용자
+  IP를 보존하지 않는다.
 - 외부 패키지는 꼭 필요한 경우에만 추가하고 lockfile을 함께 갱신한다.
-- 서비스별 512MB 메모리 제한과 backend의 비특권 사용자를 유지한다.
+- 서비스별 512MB·1 CPU·256 PID 제한과 모든 서비스의 명시적 비특권 사용자,
+  `cap_drop: [ALL]`, `no-new-privileges`를 유지한다.
 
 ## 작업 및 검증
 
@@ -87,6 +103,9 @@ Pop-Location
 - backend 실행·migration은 `uv run`으로 수행한다.
 - frontend 의존성은 `npm ci`, 개발 실행은 `npm run dev`를 사용한다.
 - frontend 변경은 `npm run typecheck`와 `npm run build`를 통과해야 한다.
+- backend 테스트는 `Push-Location backend; uv run pytest; Pop-Location`로 실행한다.
+- backend Python 변경은 같은 디렉터리에서 `uv run ruff check .`와
+  `uv run ruff format --check .`도 통과해야 한다.
 - 변경 범위에 맞게 최소한 backend health, frontend build, migration을 검증한다.
 - 실패한 검증을 숨기지 말고 원인과 미검증 항목을 보고한다.
 - 관련 없는 파일을 정리하거나 사용자의 변경을 덮어쓰지 않는다.
@@ -125,7 +144,7 @@ Pop-Location
 바로 Push할 수 있는 배포용 인계 ZIP을 만든다.
 
 ```bash
-python scripts/export_handoff.py --project-name 프로젝트명
+uv run --frozen --project backend python scripts/export_handoff.py --project-name 프로젝트명
 ```
 
 스크립트는 `_handoff/<프로젝트명>-source.zip`을 만든다. ZIP 내부에는
@@ -148,7 +167,7 @@ python scripts/export_handoff.py --project-name 프로젝트명
 - `README.md`가 React/FastAPI Template 설명이 아니라 현재 프로젝트를 설명함
 - 원본 템플릿의 공개 remote에 push하지 않음
 - Nextcloud 수동 인계를 위한 소스·테스트 보고서·변경 요약을 준비함
-- `python scripts/export_handoff.py --project-name 프로젝트명` 성공
+- `uv run --frozen --project backend python scripts/export_handoff.py --project-name 프로젝트명` 성공
 - 인계 ZIP을 새 저장소 루트에 풀었을 때 `compose.yaml`과
   `samwoo-service.yaml`이 최상위에 존재함
 - 관리자가 별도 앱 저장소에 승인본을 push한 경우에만 Coolify 자동 배포를 확인함

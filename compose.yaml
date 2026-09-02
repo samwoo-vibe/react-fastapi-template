@@ -4,32 +4,49 @@ services:
       context: ./frontend
       args:
         NODE_OPTIONS: --max-old-space-size=1536
+    # Coolify applies its app-wide env file to every Compose service. A nonempty
+    # sentinel overrides backend-only secrets in the public web container; an
+    # empty/null value would be filled again from the project environment.
+    environment:
+      DATABASE_URL: "__NOT_AVAILABLE_IN_FRONTEND__"
+      APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL must be configured in Coolify}
+    user: "101:101"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     labels:
-      # 공개 서비스인 frontend는 Coolify 네트워크 하나에만 붙으므로 Traefik이 고를
-      # 여지가 없다. 다만 frontend에 database 네트워크를 추가하는 순간 이야기가
-      # 달라진다 - 라벨이 비면 Traefik이 임의로 골라 외부 접속이 간헐적으로 끊긴다.
-      # 그때는 :-기본값에 앱 네트워크 이름을 적는다(사내 배포 규약 R3-3).
-      traefik.docker.network: ${COOLIFY_RESOURCE_UUID}
+      # 프로비저너가 Coolify native Compose 시작 경로를 보장하고 그 경로가 앱 UUID를
+      # 제공한다. 공통 fallback은 없으므로 값이 없으면 Compose 해석 단계에서 실패한다.
+      traefik.docker.network: ${COOLIFY_RESOURCE_UUID:?COOLIFY_RESOURCE_UUID must be provided by Coolify}
     depends_on:
       backend:
         condition: service_healthy
     expose:
-      - "80"
+      - "8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 10s
     # 실측 후 조정한다(사내 배포 규약 R3-6, 13장). 타입 검사·번들링은 메모리를 많이 쓴다.
     mem_limit: 512m
+    cpus: "1.0"
+    pids_limit: 256
 
   backend:
     build: ./backend
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be configured in Coolify}
+      APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL must be configured in Coolify}
       APP_ENV: ${APP_ENV:-dev}
     expose:
       - "8000"
@@ -44,6 +61,8 @@ services:
       retries: 5
       start_period: 15s
     mem_limit: 512m
+    cpus: "1.0"
+    pids_limit: 256
     networks:
       - default
       - database

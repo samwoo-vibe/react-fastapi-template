@@ -8,7 +8,6 @@ import shutil
 import zipfile
 from pathlib import Path
 
-
 ROOT_FILES = (
     "README.md",
     "AGENTS.md",
@@ -22,8 +21,11 @@ SOURCE_DIRECTORIES = (
     "frontend/public",
     "backend/app",
     "backend/migrations",
+    "backend/tests",
+    "scripts",
 )
 SOURCE_FILES = (
+    "frontend/.dockerignore",
     "frontend/package.json",
     "frontend/package-lock.json",
     "frontend/tsconfig.json",
@@ -32,20 +34,41 @@ SOURCE_FILES = (
     "frontend/index.html",
     "frontend/Dockerfile",
     "frontend/nginx.conf",
+    "backend/.dockerignore",
     "backend/pyproject.toml",
     "backend/uv.lock",
     "backend/alembic.ini",
     "backend/Dockerfile",
 )
 REQUIRED_FILES = (
+    "README.md",
+    "AGENTS.md",
+    ".gitignore",
+    ".env.example",
     "compose.yaml",
     "samwoo-service.yaml",
+    "frontend/.dockerignore",
     "frontend/Dockerfile",
+    "frontend/nginx.conf",
+    "frontend/package.json",
+    "frontend/package-lock.json",
+    "frontend/vite.config.ts",
+    "backend/.dockerignore",
     "backend/Dockerfile",
+    "backend/pyproject.toml",
+    "backend/uv.lock",
     "backend/alembic.ini",
+    "backend/migrations/env.py",
+    "backend/tests/test_deployment_contract.py",
+    "backend/tests/test_proxy_contract.py",
+    "scripts/export_handoff.py",
+    "scripts/setup.ps1",
+    "scripts/start-backend.ps1",
+    "scripts/start-frontend.ps1",
 )
 EXCLUDED_PARTS = {
     ".git",
+    ".ssh",
     ".venv",
     "node_modules",
     "dist",
@@ -57,9 +80,34 @@ EXCLUDED_PARTS = {
     "data",
 }
 SECRET_NAME = re.compile(
-    r"(^|[._-])(secret|token|password|passwd|credential|private[-_]?key)([._-]|$)",
+    r"(^|[._-])(secrets?|token|password|passwd|credentials?|private[-_]?key|"
+    r"api[-_]?key|access[-_]?key|client[-_]?secret)([._-]|$)",
     re.IGNORECASE,
 )
+SECRET_SUFFIXES = {".pem", ".key", ".p12", ".pfx", ".jks", ".keystore"}
+SECRET_FILENAMES = {
+    ".netrc",
+    ".npmrc",
+    ".pypirc",
+    "credentials",
+    "credentials.json",
+    "credentials.toml",
+    "credentials.yaml",
+    "credentials.yml",
+    "id_ed25519",
+    "id_ed25519_sk",
+    "id_ecdsa",
+    "id_ecdsa_sk",
+    "id_ed448",
+    "id_dsa",
+    "id_rsa",
+    "id_xmss",
+    "secrets",
+    "secrets.json",
+    "secrets.toml",
+    "secrets.yaml",
+    "secrets.yml",
+}
 
 
 def project_name(raw: str) -> str:
@@ -69,23 +117,66 @@ def project_name(raw: str) -> str:
     return value
 
 
+def sensitive(path: Path) -> bool:
+    name = path.name.lower()
+    return bool(
+        name.startswith(".env")
+        and name != ".env.example"
+        or name in SECRET_FILENAMES
+        or path.suffix.lower() in SECRET_SUFFIXES
+        or SECRET_NAME.search(path.name)
+    )
+
+
 def excluded(path: Path) -> bool:
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return True
-    if path.name == ".env" or SECRET_NAME.search(path.name):
+    if sensitive(path):
         return True
-    return path.suffix.lower() in {".db", ".sqlite", ".sqlite3", ".log", ".pyc", ".tmp"}
+    name = path.name.lower()
+    # Treat backup/copy variants (for example ``prod.db.bak`` and
+    # ``cache.sqlite.copy``) as database artifacts too. Checking only the final
+    # suffix would otherwise package a full local database under a second
+    # extension.
+    if ".db" in name or ".sqlite" in name:
+        return True
+    return path.suffix.lower() in {
+        ".db",
+        ".sqlite",
+        ".sqlite3",
+        ".log",
+        ".pyc",
+        ".tmp",
+    } or name.endswith(
+        (
+            ".db-shm",
+            ".db-wal",
+            ".db-journal",
+            ".sqlite-shm",
+            ".sqlite-wal",
+            ".sqlite-journal",
+            ".sqlite3-shm",
+            ".sqlite3-wal",
+            ".sqlite3-journal",
+        )
+    )
 
 
 def copy_tree(source: Path, destination: Path) -> None:
     if source.is_symlink():
         raise ValueError(f"심볼릭 링크는 인수인계본에 포함할 수 없습니다: {source}")
+    if sensitive(source):
+        raise ValueError(f"비밀 가능성이 있는 파일을 먼저 확인·제거하세요: {source}")
     if source.is_dir():
         for child in sorted(source.iterdir()):
             relative = child.relative_to(source)
+            if sensitive(child):
+                raise ValueError(f"비밀 가능성이 있는 파일을 먼저 확인·제거하세요: {child}")
             if not excluded(relative):
                 copy_tree(child, destination / relative)
         return
+    if not source.is_file():
+        raise ValueError(f"일반 파일이 아닌 항목은 인수인계본에 포함할 수 없습니다: {source}")
     if excluded(source):
         return
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -140,6 +231,8 @@ def validate(output: Path) -> list[Path]:
         raise ValueError("frontend/src가 비어 있습니다.")
     if not any((output / "backend/app").rglob("*")):
         raise ValueError("backend/app이 비어 있습니다.")
+    if not any((output / "backend/migrations/versions").glob("*.py")):
+        raise ValueError("인수인계 결과에 Alembic migration revision이 없습니다.")
     for path in files:
         relative = path.relative_to(output)
         if excluded(relative):
@@ -156,6 +249,13 @@ def make_zip(output: Path, archive: Path) -> None:
                 bundle.write(path, path.relative_to(output))
 
 
+def validate_output_dir(root: Path, output_dir: Path) -> None:
+    """Prevent an export directory from recursively becoming its own input."""
+    handoff_root = (root / "_handoff").resolve()
+    if output_dir.is_relative_to(root) and not output_dir.is_relative_to(handoff_root):
+        raise ValueError("프로젝트 내부 출력은 _handoff 아래에만 만들 수 있습니다.")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-name")
@@ -164,6 +264,7 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     name = project_name(args.project_name or root.name)
     output_dir = (args.output_dir or root / "_handoff").resolve()
+    validate_output_dir(root, output_dir)
     output = output_dir / f"{name}-source"
     archive = output_dir / f"{name}-source.zip"
     if output.exists() or archive.exists():

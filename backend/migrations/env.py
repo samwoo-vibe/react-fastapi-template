@@ -3,10 +3,10 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+from sqlalchemy.engine import make_url
 
-from app.db import Base
 from app import models  # noqa: F401
-
+from app.db import Base
 
 config = context.config
 config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
@@ -28,10 +28,13 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    database_url = make_url(config.get_main_option("sqlalchemy.url"))
+    connect_args = {"connect_timeout": 5} if database_url.get_backend_name() == "postgresql" else {}
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
@@ -43,4 +46,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-

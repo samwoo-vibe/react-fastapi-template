@@ -42,6 +42,15 @@ def test_nginx_supports_bounded_uploads_and_websockets() -> None:
     assert "proxy_send_timeout 3600s;" in nginx
 
 
+def test_nginx_prevents_stale_spa_shells_without_disabling_asset_cache() -> None:
+    nginx = read("frontend/nginx.conf")
+
+    assert '"/index.html"    "no-cache, no-store, must-revalidate";' in nginx
+    assert '~^/api(?:/|$)    "no-store";' in nginx
+    assert '~^/assets/       "public, max-age=31536000, immutable";' in nginx
+    assert "add_header Cache-Control $cache_control always;" in nginx
+
+
 def test_vite_matches_production_api_and_websocket_routing() -> None:
     vite = read("frontend/vite.config.ts")
 

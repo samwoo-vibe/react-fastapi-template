@@ -171,3 +171,5 @@ uv run --frozen --project backend python scripts/export_handoff.py --project-nam
 - 인계 ZIP을 새 저장소 루트에 풀었을 때 `compose.yaml`과
   `samwoo-service.yaml`이 최상위에 존재함
 - 관리자가 별도 앱 저장소에 승인본을 push한 경우에만 Coolify 자동 배포를 확인함
+- frontend Nginx가 SPA 진입 문서는 재검증하고 `/api/`는 `no-store`, 해시된
+  `/assets/`만 `immutable`로 제공하는 캐시 계약을 유지함

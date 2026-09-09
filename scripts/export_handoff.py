@@ -1,4 +1,4 @@
-"""Create a source-only React/FastAPI Template handoff package."""
+"""Create a source-only React/FastAPI deployment handoff package."""
 
 from __future__ import annotations
 
@@ -78,6 +78,17 @@ EXCLUDED_PARTS = {
     ".ruff_cache",
     ".mypy_cache",
     "data",
+    "local-data",
+}
+DATA_SUFFIXES = {
+    ".csv",
+    ".tsv",
+    ".xls",
+    ".xlsx",
+    ".xlsm",
+    ".ods",
+    ".parquet",
+    ".feather",
 }
 SECRET_NAME = re.compile(
     r"(^|[._-])(secrets?|token|password|passwd|credentials?|private[-_]?key|"
@@ -140,7 +151,7 @@ def excluded(path: Path) -> bool:
     # extension.
     if ".db" in name or ".sqlite" in name:
         return True
-    return path.suffix.lower() in {
+    return path.suffix.lower() in DATA_SUFFIXES | {
         ".db",
         ".sqlite",
         ".sqlite3",
@@ -171,12 +182,16 @@ def copy_tree(source: Path, destination: Path) -> None:
         for child in sorted(source.iterdir()):
             relative = child.relative_to(source)
             if sensitive(child):
-                raise ValueError(f"비밀 가능성이 있는 파일을 먼저 확인·제거하세요: {child}")
+                raise ValueError(
+                    f"비밀 가능성이 있는 파일을 먼저 확인·제거하세요: {child}"
+                )
             if not excluded(relative):
                 copy_tree(child, destination / relative)
         return
     if not source.is_file():
-        raise ValueError(f"일반 파일이 아닌 항목은 인수인계본에 포함할 수 없습니다: {source}")
+        raise ValueError(
+            f"일반 파일이 아닌 항목은 인수인계본에 포함할 수 없습니다: {source}"
+        )
     if excluded(source):
         return
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -212,9 +227,8 @@ def write_handoff(root: Path, output: Path, name: str) -> None:
 - `node_modules`, Python 가상환경, 빌드 결과와 캐시
 - 로컬 DB, 업로드 파일, 로그와 실제 회사 데이터
 
-사용자는 이 폴더 또는 ZIP을 Nextcloud의
-`공유 자료/VibeCoding/<프로젝트명>/`에 직접 업로드하고, 관리자는 검토 후 별도
-private GitHub 저장소를 만든다.
+사용자는 이 ZIP을 배포 담당자에게 전달한다. 배포 담당자는 검토 후 별도 private
+GitHub 저장소에 승인된 소스만 반영한다.
 """,
         encoding="utf-8",
     )
@@ -282,7 +296,7 @@ def main() -> int:
             archive.unlink()
         raise
     print(f"폴더: {output}")
-    print(f"Nextcloud ZIP (저장소 루트 직결): {archive}")
+    print(f"배포 담당자 전달용 ZIP (저장소 루트 직결): {archive}")
     print(f"포함 파일: {len(files)}개")
     return 0
 

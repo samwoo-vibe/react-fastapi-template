@@ -36,6 +36,7 @@ credentials
 node_modules/
 dist/
 _handoff/
+/local-data/
 __pycache__/
 *.pyc
 .pytest_cache/

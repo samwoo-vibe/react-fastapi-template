@@ -88,18 +88,48 @@ def test_container_images_are_pinned_by_digest() -> None:
     assert "COPY --from=ghcr.io/astral-sh/uv:0.11.32@sha256:" in backend
 
 
-def test_docs_describe_public_by_default_access() -> None:
+def test_docs_describe_public_route_without_shared_basic_auth() -> None:
     readme = read("README.md")
     agents = read("AGENTS.md")
     frontend = read("frontend/src/main.tsx")
 
-    assert "기본 공개" in readme
+    assert "배포 주소 자체에는" in readme
     assert "기본 공개" in agents
     assert "회사 공용 HTTP Basic Auth가 적용되지 않습니다" in readme
     assert "APP_BASE_URL" in agents
     assert "공개 방문자" in frontend
     assert "인증 미구현" in frontend
     assert "samwooax" not in frontend
+
+
+def test_docs_make_deployment_handoff_optional_and_forbid_real_data() -> None:
+    readme = read("README.md")
+    agents = read("AGENTS.md")
+
+    assert "배포하지 않을 때는 ZIP을 만들 필요가 없습니다" in readme
+    assert "사용자가 배포 의사를 명확히 밝히기 전에는 인계 ZIP을 만들" in agents
+    assert "배포 담당자에게 전달" in readme
+    assert "실제 회사 데이터" in readme
+    assert "실제 회사 데이터" in agents
+    assert "Nextcloud" not in readme
+    assert "Nextcloud" not in agents
+
+
+def test_docs_require_default_imap_login_unless_another_auth_is_requested() -> None:
+    readme = read("README.md")
+    agents = read("AGENTS.md")
+
+    for document in (readme, agents):
+        assert "play.samwooeleco.com" in document
+        assert "993" in document
+        assert "IMAP" in document
+        assert "별도" in document
+        assert "비밀번호" in document
+    assert "다른 인증 방식을 명시했다면" in agents
+    assert "메일함" in agents
+    assert "SMTP 연결도 만들지 않는다" in agents
+    assert "rate limit" in agents
+    assert "backend의 모든 보호" in agents
 
 
 def test_local_environment_defines_the_canonical_base_url() -> None:
@@ -163,6 +193,9 @@ def test_handoff_rejects_environment_and_private_key_files(tmp_path: Path) -> No
     assert exporter.excluded(Path("data/cache.db-journal"))
     assert exporter.excluded(Path("backups/prod.db.bak"))
     assert exporter.excluded(Path("copies/cache.sqlite.copy"))
+    assert exporter.excluded(Path("local-data/employees.xlsx"))
+    assert exporter.excluded(Path("frontend/public/customers.csv"))
+    assert exporter.excluded(Path("backend/app/export.parquet"))
     assert not exporter.excluded(Path(".env.example"))
     sensitive_file = tmp_path / "client-secret.txt"
     sensitive_file.touch()

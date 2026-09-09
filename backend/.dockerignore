@@ -78,3 +78,5 @@ __pycache__
 **/.ruff_cache
 .mypy_cache
 **/.mypy_cache
+local-data
+**/local-data

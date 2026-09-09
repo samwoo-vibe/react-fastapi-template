@@ -36,7 +36,8 @@ README는 사람을 위한 프로젝트 소개와 실행 안내다. 작업 규�
 
 - `samwoo-service.yaml`의 `public_service: frontend` / `public_port: 8080` 조합은
   프로비저너 허용 목록에 등록된 값이다. 바꾸면 배포가 거부된다. 매니페스트가 잘못되면
-  GitHub에는 성공으로 보이고 배포만 조용히 안 되므로, push 후 도메인을 눈으로 확인한다.
+  GitHub에는 성공으로 보이고 배포만 조용히 안 되므로, 배포 담당자가 push한 경우
+  도메인을 직접 확인한다.
 - 각 컨테이너가 노출하는 포트는 정확히 하나여야 한다(`EXPOSE 8080`, `EXPOSE 8000`).
   관리·메트릭 포트를 추가로 열면 Traefik이 대상 포트를 정하지 못해 라우팅이 실패한다.
 - Dockerfile의 공식 base image와 외부 `COPY --from` 이미지는 태그와 OCI digest를 함께
@@ -70,6 +71,14 @@ README는 사람을 위한 프로젝트 소개와 실행 안내다. 작업 규�
 - destructive migration, 데이터 삭제, DB·role 삭제는 사전 승인을 받는다.
 - `.env`, 비밀번호, API token, SSH key, 실제 `DATABASE_URL`을 코드·로그·문서·Git에
   넣지 않는다. 예시는 가짜 값만 사용한다.
+- 엑셀·CSV·문서·기존 시스템 추출본을 포함한 **실제 회사 데이터는 어떤 형태로도
+  소스코드에 하드코딩하거나 저장소에 넣지 않는다.** frontend 정적 자산, backend
+  상수, 테스트 fixture, seed, migration, 주석과 문서도 예외가 아니다.
+- 실제 데이터가 필요한 기능은 PostgreSQL, 사용자가 실행 시 업로드하는 파일 또는
+  담당자가 승인한 외부 저장소에서 읽도록 구현한다. 로컬에서 쓰는 실제 데이터 파일은
+  저장소 밖이나 Git에서 제외된 `local-data/`에 두며 배포 인계본에는 포함하지 않는다.
+- 예제와 테스트에는 실제 데이터의 일부를 복사하거나 단순히 이름만 가린 값을 쓰지
+  않는다. 현실의 사람·거래·설비와 연결되지 않는 최소한의 합성 데이터만 사용한다.
 - 커밋 전에 gitleaks 검사를 통과시킨다. 탐지 결과를 무시하거나 allowlist에 추가하려면
   담당자 승인을 받는다.
 - frontend에 DB 접속정보를 넣거나 브라우저에서 PostgreSQL에 직접 접속하지 않는다.
@@ -85,11 +94,40 @@ README는 사람을 위한 프로젝트 소개와 실행 안내다. 작업 규�
 - 서비스별 512MB·1 CPU·256 PID 제한과 모든 서비스의 명시적 비특권 사용자,
   `cap_drop: [ALL]`, `no-new-privileges`를 유지한다.
 
+## 기본 로그인 인증
+
+- 사용자가 별도의 로그인 방식이나 인증 체계를 명시하지 않았다면, 완성되는 앱에는
+  **회사 메일 계정을 이용한 IMAP 로그인**을 기본으로 구현한다. 회원가입, 별도 비밀번호
+  생성과 자체 비밀번호 저장 기능은 만들지 않는다.
+- 사용자가 자체 로그인, SSO, OAuth 등 다른 인증 방식을 명시했다면 이 기본 IMAP 규칙은
+  적용하지 않고 사용자가 요청한 인증 방식을 구현한다. 두 로그인 체계를 임의로 함께
+  만들지 않는다.
+- 로그인 화면에서 회사 이메일 주소와 비밀번호를 입력받고, backend가
+  `play.samwooeleco.com:993`에 SSL/TLS로 IMAP 로그인을 실제 시도해 성공 여부를
+  확인한다. frontend가 IMAP 서버에 직접 접속하면 안 된다.
+- IMAP은 로그인 인증에만 사용한다. 메일함 목록·본문·첨부파일을 읽거나 메일을 검색,
+  변경, 삭제 또는 발송하는 기능은 구현하지 않는다. SMTP 연결도 만들지 않는다.
+- 메일 비밀번호는 IMAP 인증 요청 동안에만 메모리에서 사용하고 즉시 버린다. DB, 파일,
+  캐시, session, token, 로그, 오류 메시지, 모니터링 도구 또는 브라우저 저장소에
+  저장하지 않는다. 요청 body나 IMAP 명령 전체를 로깅하지 않는다.
+- TLS 인증서 검증을 끄지 않고 연결·인증 timeout을 둔다. IMAP 연결은 성공·실패와
+  관계없이 종료하고, blocking IMAP 호출로 async event loop를 막지 않도록 threadpool
+  등으로 격리한다.
+- 인증 성공 후에는 비밀번호가 들어 있지 않은 서버측 session 또는 안전한 token으로
+  로그인 상태를 유지한다. 쿠키를 사용하면 `HttpOnly`, `Secure`, 적절한 `SameSite`,
+  만료시간을 설정하고 로그아웃 시 무효화한다. 상태 변경 요청에는 CSRF 방어를 적용한다.
+- 로그인 endpoint에는 사용자·IP 기준 rate limit과 반복 실패 지연을 적용한다. 계정 존재
+  여부, 비밀번호 오류, IMAP 장애를 구분해 노출하지 않는 일반화된 오류 메시지를 사용한다.
+  인증 실패 응답이나 로그에 이메일 주소 전체와 비밀번호를 남기지 않는다.
+- 로그인하지 않은 사용자는 health check와 로그인에 필요한 endpoint·정적 자산 외의
+  화면과 API를 사용할 수 없어야 한다. frontend 표시만 숨기지 말고 backend의 모든 보호
+  API에서 session 또는 token을 검증한다.
+
 ## 작업 및 검증
 
 - 시작 전 이 문서와 `compose.yaml`, 관련 코드를 읽고 기존 구조를 우선한다.
-- 프로젝트 이름, 목적, 대상 사용자, 주요 기능과 성공 기준을 사용자와 먼저 확정한다.
-- 구현 전에 변경 범위와 인수 조건을 제시하고 사용자 확인을 받는다.
+- 프로젝트 이름, 목적, 대상 사용자와 주요 기능을 요청에서 파악한다. 보안·데이터·배포
+  방식에 영향을 주는 중요한 내용만 불명확할 때 사용자에게 확인한다.
 - DB 스키마를 변경할 때는 다음과 같이 migration을 생성하고 적용한다.
 
 ```powershell
@@ -126,10 +164,13 @@ Pop-Location
 - 원본 템플릿 저장소 `samwoo-vibe/react-fastapi-template`에는 commit하거나 push하지 않는다.
 - 신규 작업은 공개 템플릿을 내려받은 로컬 작업 폴더에서 수행한다. 신규 앱 GitHub
   저장소 URL을 작업자에게 요구하지 않는다.
-- 검증 결과와 변경사항을 사용자에게 보여준 뒤, 사용자가 결과물을 Nextcloud의
-  `공유 자료/VibeCoding/<프로젝트명>/` 폴더에 직접 올려 관리자 검토를 받는다.
 - 바이브코딩 작업 중에는 원본 템플릿이나 어떤 GitHub 저장소에도 commit·push하지
   않는다. 관리자가 검토 후 별도 private 앱 저장소를 만들고 승인본을 push한다.
+- 사용자가 배포 의사를 명확히 밝히기 전에는 인계 ZIP을 만들거나 배포 절차를 진행하지
+  않는다. 로컬 실행과 기능 검증까지만 완료한다.
+- 사용자가 배포를 원하면 검증을 마친 뒤 필요한 소스코드와 배포 설정만 담은 인계 ZIP을
+  만들고, 그 압축파일을 배포 담당자에게 전달하라고 안내한다. 전달 경로나 특정 파일
+  공유 서비스는 지정하지 않는다.
 - push 전에 `compose.yaml`, `samwoo-service.yaml`, frontend/backend `Dockerfile`,
   `frontend/package-lock.json`, `backend/uv.lock`, `backend/migrations/`가 유지되는지
   확인한다.
@@ -138,38 +179,41 @@ Pop-Location
 - 배포 시 backend가 `alembic upgrade head`에 성공한 뒤 시작되어야 한다.
 - 자동 배포 설정, 중앙 DB network, 도메인 규칙을 임의로 우회하지 않는다.
 
-## Nextcloud 인계 ZIP
+## 배포 인계 ZIP (사용자가 배포를 원할 때만)
 
-개발과 검증이 끝나면 관리자가 압축을 풀고 파일을 보충하지 않아도 새 저장소에
-바로 Push할 수 있는 배포용 인계 ZIP을 만든다.
+사용자가 배포를 요청한 경우에만, 개발과 검증을 마친 뒤 배포 담당자가 새 저장소에
+바로 반영할 수 있는 소스 전용 ZIP을 만든다.
 
 ```bash
 uv run --frozen --project backend python scripts/export_handoff.py --project-name 프로젝트명
 ```
 
 스크립트는 `_handoff/<프로젝트명>-source.zip`을 만든다. ZIP 내부에는
-`frontend/`, `backend/`, `compose.yaml`, `samwoo-service.yaml` 등 저장소에 필요한
-파일이 최상위에 바로 들어가며, `<프로젝트명>-source/` 같은 래퍼 폴더를 만들지
-않는다. 관리자는 이 ZIP을 새 private GitHub 저장소의 루트에 압축 해제한 뒤 파일을
-이동하거나 추가하지 않고 `main`에 최초 Push한다.
+`frontend/`, `backend/`, `compose.yaml`, `samwoo-service.yaml`, lockfile, migration 등
+빌드·검증·배포에 필요한 파일이 최상위에 바로 들어가며, `<프로젝트명>-source/` 같은
+래퍼 폴더를 만들지 않는다. 사용자에게 이 ZIP을 배포 담당자에게 전달하라고 안내한다.
 
 `.git`, `.env`, 토큰·비밀번호·키, `node_modules`, `.venv`, 빌드 결과, 캐시, 로그,
-로컬 DB와 실제 데이터는 ZIP에 포함하지 않는다. 스크립트가 실패하거나 필수 파일이
-누락되면 인계 완료로 보고하지 않는다.
+로컬 DB, 업로드 파일, 엑셀·CSV 등의 실제 데이터는 ZIP에 포함하지 않는다. 실제 값을
+코드에 하드코딩해 파일 확장자 검사를 우회해서도 안 된다. 스크립트가 실패하거나 필수
+파일이 누락되면 인계 완료로 보고하지 않는다.
 
 ## 완료 조건
 
-- backend 의존성 동기화와 관련 테스트·health 검증 성공
-- frontend `npm run typecheck`와 `npm run build` 성공
-- migration 적용 성공
+- 변경한 범위의 backend 의존성 동기화와 관련 테스트·health 검증 성공
+- frontend를 변경했다면 `npm run typecheck`와 `npm run build` 성공
+- DB 스키마를 변경했다면 migration 생성·적용 성공
 - gitleaks 검사 성공
 - `.env`, 실제 자격증명과 `DATABASE_URL`이 Git 추적 대상이 아님
+- 실제 회사 데이터가 코드·문서·테스트·정적 자산·migration과 Git 추적 대상에 없음
+- 별도 인증 요구가 없다면 회사 메일 IMAP 로그인과 backend API 인증 검증이 동작하고,
+  비밀번호 비저장·로그 마스킹·rate limit·session 보안 테스트가 통과함
+- 사용자가 다른 인증 방식을 명시했다면 IMAP 로그인을 추가하지 않고 요청한 방식의
+  로그인·인가 테스트가 통과함
 - `README.md`가 React/FastAPI Template 설명이 아니라 현재 프로젝트를 설명함
 - 원본 템플릿의 공개 remote에 push하지 않음
-- Nextcloud 수동 인계를 위한 소스·테스트 보고서·변경 요약을 준비함
-- `uv run --frozen --project backend python scripts/export_handoff.py --project-name 프로젝트명` 성공
-- 인계 ZIP을 새 저장소 루트에 풀었을 때 `compose.yaml`과
-  `samwoo-service.yaml`이 최상위에 존재함
-- 관리자가 별도 앱 저장소에 승인본을 push한 경우에만 Coolify 자동 배포를 확인함
+- 사용자가 배포를 요청한 경우에만 인계 ZIP 생성 명령이 성공하고, ZIP 최상위에
+  `compose.yaml`과 `samwoo-service.yaml`이 존재하며, 배포 담당자에게 전달하도록 안내함
+- 배포 담당자가 별도 앱 저장소에 승인본을 push한 경우에만 Coolify 자동 배포를 확인함
 - frontend Nginx가 SPA 진입 문서는 재검증하고 `/api/`는 `no-store`, 해시된
   `/assets/`만 `immutable`로 제공하는 캐시 계약을 유지함

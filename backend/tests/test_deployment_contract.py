@@ -132,6 +132,23 @@ def test_docs_require_default_imap_login_unless_another_auth_is_requested() -> N
     assert "backend의 모든 보호" in agents
 
 
+def test_docs_use_samwoo_ui_standard_by_default_unless_overridden() -> None:
+    readme = read("README.md")
+    agents = read("AGENTS.md")
+
+    for document in (readme, agents):
+        assert "samwoo-vibe/samwoo-ui-standard" in document
+        assert "별도" in document
+        assert "디자인" in document
+        assert "Coolify 배포" in document
+    assert "기본 UI 디자인 기준" in agents
+    assert "사용자의 요청을 우선" in agents
+    assert "실제 회사" in agents
+    assert "합성 한국어 데이터를 사용" in agents
+    assert "Vite proxy" in agents
+    assert "갤러리용 예시 콘텐츠는 남아 있지 않음" in agents
+
+
 def test_local_environment_defines_the_canonical_base_url() -> None:
     env_example = read(".env.example")
 

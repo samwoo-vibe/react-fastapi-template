@@ -15,6 +15,17 @@
 - 배포: Docker Compose + Coolify Traefik
 - React 파일·API 연결: frontend Nginx
 
+## 기본 화면 디자인
+
+별도의 디자인 요청이 없으면
+[`SAMWOO UI Standard`](https://github.com/samwoo-vibe/samwoo-ui-standard)를 기본으로
+사용합니다. 해당 표준의 디자인 토큰, 공통 컴포넌트, 회사 로고·파비콘, 라이트·다크
+테마와 반응형·접근성 기준을 현재 서비스 기능에 맞게 적용합니다.
+
+표준 저장소의 데모 문구와 예시 데이터는 가져오지 않으며, 이 템플릿의 API 연결과
+Coolify 배포 설정은 유지합니다. 사용자가 다른 디자인이나 기존 화면 유지를 요청하면
+SAMWOO UI Standard 대신 그 요청을 우선합니다.
+
 ## 새 서비스 만들기
 
 1. 공개 템플릿을 내려받아 Windows PC의 새 로컬 작업 폴더에 풉니다.

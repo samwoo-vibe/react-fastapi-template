@@ -28,6 +28,30 @@ README는 사람을 위한 프로젝트 소개와 실행 안내다. 작업 규�
 - Python 의존성은 `backend/pyproject.toml`과 `backend/uv.lock`으로 관리한다.
   `pip install`이나 `requirements.txt`를 새 표준으로 추가하지 않는다.
 
+## 기본 UI 디자인
+
+- 사용자가 별도의 디자인, 브랜드 또는 기존 화면 유지를 요청하지 않았다면
+  [`samwoo-vibe/samwoo-ui-standard`](https://github.com/samwoo-vibe/samwoo-ui-standard)의
+  최신 기본 브랜치를 **기본 UI 디자인 기준**으로 적용한다.
+- 사용자가 다른 디자인, 디자인 시스템, 참고 화면 또는 기존 UI 유지를 명시했다면
+  SAMWOO UI Standard를 강제로 섞지 않고 사용자의 요청을 우선한다.
+- UI 작업을 시작하기 전에 표준 저장소의 `AGENTS.md`, `docs/DESIGN_SYSTEM.md`,
+  `docs/UI_CHECKLIST.md`, `docs/DEPLOYMENT_CACHE.md`, `src/styles/tokens.css`와
+  `src/components/`를 확인한다. 출처 저장소에 접근할 수 없으면 임의로 비슷하게 만들지
+  말고 사용자에게 알려야 한다.
+- 표준 저장소의 디자인 토큰, 공통 컴포넌트, 로고·파비콘과 반응형·접근성 패턴을 현재
+  프로젝트의 `frontend/` 안으로 가져와 제품 기능에 맞게 구성한다. 표준 저장소를 런타임
+  CDN이나 외부 Git 저장소에 의존하게 만들지 말고 배포 소스가 자체 완결적이어야 한다.
+- 표준 저장소의 갤러리용 화면, 문구, 서비스 목록과 예시 수치는 복사하지 않는다.
+  프로젝트의 실제 기능과 정보 구조로 교체하며, 화면 검증용 콘텐츠가 필요하면 실제 회사
+  데이터가 아닌 합성 한국어 데이터를 사용한다.
+- UI를 적용하면서 이 템플릿의 `/api` 호출 경로, Vite proxy, Nginx 설정, Dockerfile,
+  health check와 Coolify 배포 계약을 덮어쓰지 않는다. UI 파일과 배포 파일의 책임을
+  구분하고 필요한 부분만 병합한다.
+- 기본 적용 완료 후 라이트·다크 테마, loading·empty·error·disabled 상태, 키보드
+  포커스, reduced motion과 320px 이상 반응형 화면을 확인하고 `npm run typecheck`와
+  `npm run build`를 통과시킨다.
+
 ## 사내 배포 규약
 
 배포 규약 전문은 사내 문서 **`마이그레이션 규칙.md`** 에 있다(관리자 보관). 이 템플릿은
@@ -210,6 +234,10 @@ uv run --frozen --project backend python scripts/export_handoff.py --project-nam
   비밀번호 비저장·로그 마스킹·rate limit·session 보안 테스트가 통과함
 - 사용자가 다른 인증 방식을 명시했다면 IMAP 로그인을 추가하지 않고 요청한 방식의
   로그인·인가 테스트가 통과함
+- 별도 디자인 요구가 없다면 SAMWOO UI Standard의 토큰·브랜드 자산·공통 컴포넌트와
+  접근성·반응형 기준이 적용되고, 갤러리용 예시 콘텐츠는 남아 있지 않음
+- 사용자가 다른 디자인이나 기존 UI 유지를 명시했다면 SAMWOO UI Standard를 강제로
+  혼합하지 않고 요청한 디자인 기준을 따름
 - `README.md`가 React/FastAPI Template 설명이 아니라 현재 프로젝트를 설명함
 - 원본 템플릿의 공개 remote에 push하지 않음
 - 사용자가 배포를 요청한 경우에만 인계 ZIP 생성 명령이 성공하고, ZIP 최상위에
